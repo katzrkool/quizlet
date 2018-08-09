@@ -1,0 +1,26 @@
+{
+  "name": "quizlet",
+  "version": "1.0.0",
+  "description": "Plays various quizlet games automatically",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/katzrkool/quizlet.git"
+  },
+  "author": "Lucas Kellar",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/katzrkool/quizlet/issues"
+  },
+  "homepage": "https://github.com/katzrkool/quizlet#readme",
+  "dependencies": {
+    "puppeteer": "^1.6.2"
+  },
+  "devDependencies": {
+    "@types/node": "^10.5.7",
+    "@types/puppeteer": "^1.6.0"
+  }
+}
