@@ -5,8 +5,8 @@ A Puppeteer program to play various Quizlet games
 ## Installation
 
 * Clone the repo
-* ‘npm install‘
-* Compile the Typescript (‘tsc‘)
+* `npm install`
+* Compile the Typescript (`tsc`)
 * Run index.js
 
 ## Usage
