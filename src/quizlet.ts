@@ -1,43 +1,69 @@
-import {Browser, ElementHandle, launch, Page} from 'puppeteer';
-
-function delay(ms: number) {
-    return new Promise( (resolve) => setTimeout(resolve, ms) );
-}
+import {Browser, launch, Page} from 'puppeteer';
+import {noPage, prompt} from './util';
+import Gravity from './games/gravity';
+import Match from './games/match';
 
 class Quizlet {
     private browser?: Browser;
     private page?: Page;
     private url?: string;
+    private answers?: object;
+    private game: string = '';
     async play() {
         await this.initSession();
         try {
-            const answers = await this.scrape();
-            await this.match(answers);
+            if (!this.page) {throw noPage();}
+            this.answers = await this.scrape();
+            await this.go();
         } catch (e) {
             if (this.page) {await this.page.screenshot({path: 'error.png'}); }
-            throw e;
+            console.log(e);
         } finally {
             if (this.page) {await this.page.screenshot({path: 'done.png'}); }
             if (this.browser) await this.browser.close();
             process.exit();
         }
     }
+    private async go() {
+        if (!this.page) {throw noPage();}
+        if (!this.answers) {throw new Error('No Answers!');}
+        if (this.game === 'm') {
+            await new Match(this.page, this.answers, this.formatURL('match')).match();
+        } else if (this.game === 'g') {
+            await new Gravity(this.page, this.answers, this.formatURL('gravity')).gravity();
+        }
+        await this.again();
+    }
     private async initSession() {
-        let url = await this.prompt('What\'s the URL of the quizlet?\t');
+        let url = await prompt('What\'s the URL of the quizlet?\t');
         if (!url.endsWith('/')) {
             url += '/';
         }
+        this.game = await this.gamePick();
         this.url = url;
         this.browser = await launch({
             headless: false,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1440,900'],
         });
         this.page = await this.browser.newPage();
         await this.page.setViewport({width: 1920, height: 1080});
         console.log('Browser Initialized');
     }
+    private async again() {
+        const ans = await prompt('Try again? (y\\n) or change games (g)\t');
+        if (ans === 'y') {
+            await this.go();
+        } else if (ans === 'g') {
+            this.game = await this.gamePick();
+            await this.go();
+        }
+    }
+    private async gamePick() {
+        return await prompt('Would you like to play Match (m) or Gravity (g)\t'); //, or Live (l)
+
+    }
     private async scrape(): Promise<object> {
-        if (!this.page || !this.url) throw this.noPage();
+        if (!this.page || !this.url) throw noPage();
         const {page} = this;
         await page.goto(this.url);
 
@@ -59,50 +85,6 @@ class Quizlet {
         }
         return answers;
     }
-    private async match(answers: object) {
-        if (!this.page) throw this.noPage();
-        const {page} = this;
-        await page.setViewport({width: 335, height: 650});
-        await this.page.goto(this.formatURL('match'));
-        await this.page.waitForSelector('.UIButton--hero');
-
-        await this.page.click('.UIButton--hero');
-        let tiles = await this.tiles();
-        while (tiles.length === 0) {
-            await delay(100);
-            tiles = await this.tiles();
-        }
-        const tileText = await Promise.all(tiles.map(async (tile) => {
-            return (await this.getText(tile)).replace('\n', '');
-        }));
-        for (const i of tileText) {
-            if (answers[i]) {
-                await tiles[tileText.indexOf(i)].click();
-                await tiles[tileText.indexOf(answers[i])].click();
-            }
-        }
-
-        await this.page.waitForSelector('.HighscoresMessage');
-
-        console.log('Time: ' + await this.getText('.HighscoresMessage-score'));
-
-    }
-    private async getText(ele: ElementHandle | string): Promise<string> {
-        if (!this.page) throw this.noPage();
-        let handle;
-        if (typeof ele === 'string') {
-            handle = await this.page.$(ele);
-        } else {
-            handle = ele;
-        }
-        return await this.page.evaluate((element) => {
-            return element.innerText;
-        }, handle);
-    }
-    private async tiles() {
-        if (!this.page) throw this.noPage();
-        return await this.page.$$('.MatchModeQuestionGridBoard-tile');
-    }
     private formatURL(dest: string): string {
         if (!this.url) throw new Error('No URL!');
         const urlParts = this.url.split('/');
@@ -110,20 +92,6 @@ class Quizlet {
             urlParts.splice(urlParts.length - 2, 1);
         }
         return urlParts.join('/')  + dest;
-    }
-    private noPage(): Error {
-        return new Error('No Page!!');
-    }
-    private async prompt(question): Promise<string> {
-        const stdin = process.stdin;
-        const stdout = process.stdout;
-
-        stdin.resume();
-        stdout.write(question);
-
-        return new Promise<string>((resolve, reject) => {
-            stdin.once('data', (data) => resolve(data.toString().trim()));
-        });
     }
 }
 
