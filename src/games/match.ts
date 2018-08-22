@@ -5,10 +5,12 @@ class Match {
     private page: Page;
     private answers: object;
     private url: string;
-    constructor(page: Page, answers: object, url: string) {
+    private loggedIn: boolean;
+    constructor(page: Page, answers: object, url: string, loggedIn: boolean) {
         this.page = page;
         this.answers = answers;
         this.url = url;
+        this.loggedIn = loggedIn;
     }
 
     public async match() {
@@ -27,6 +29,9 @@ class Match {
             return (await getText(tile, page)).replace('\n', '');
         }));
         for (const i of tileText) {
+            if (this.loggedIn) {
+                await delay(25);
+            }
             if (this.answers[i]) {
                 await tiles[tileText.indexOf(i)].click();
                 await tiles[tileText.indexOf(this.answers[i])].click();

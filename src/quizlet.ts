@@ -9,11 +9,14 @@ class Quizlet {
     private url?: string;
     private answers?: object;
     private game: string = '';
+    private loggedIn: boolean = false;
     async play() {
         await this.initSession();
         try {
             if (!this.page) {throw noPage();}
             this.answers = await this.scrape();
+            await this.login();
+            this.game = await this.gamePick();
             await this.go();
         } catch (e) {
             if (this.page) {await this.page.screenshot({path: 'error.png'}); }
@@ -28,7 +31,7 @@ class Quizlet {
         if (!this.page) {throw noPage();}
         if (!this.answers) {throw new Error('No Answers!');}
         if (this.game === 'm') {
-            await new Match(this.page, this.answers, this.formatURL('match')).match();
+            await new Match(this.page, this.answers, this.formatURL('match'), this.loggedIn).match();
         } else if (this.game === 'g') {
             await new Gravity(this.page, this.answers, this.formatURL('gravity')).gravity();
         }
@@ -39,7 +42,6 @@ class Quizlet {
         if (!url.endsWith('/')) {
             url += '/';
         }
-        this.game = await this.gamePick();
         this.url = url;
         this.browser = await launch({
             headless: false,
@@ -60,7 +62,15 @@ class Quizlet {
     }
     private async gamePick() {
         return await prompt('Would you like to play Match (m) or Gravity (g)\t'); //, or Live (l)
-
+    }
+    private async login() {
+        if (!this.page) {throw noPage();}
+        if (await prompt('Want to login? (y\\n):\t') === 'y') {
+            await this.page.goto('https://quizlet.com/login');
+            console.log('\nAlso, we may have to slow down the game so quizlet will record your score.\n');
+            await prompt('Press enter when finished logging in\t');
+            this.loggedIn = true;
+        }
     }
     private async scrape(): Promise<object> {
         if (!this.page || !this.url) throw noPage();
