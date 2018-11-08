@@ -1,39 +1,36 @@
-import {Browser, launch, Page} from 'puppeteer';
-import {noPage, prompt} from './util';
+import {Browser, launch} from 'puppeteer';
 import Gravity from './games/gravity';
+import Live from './games/live';
 import Match from './games/match';
+import {noPage, prompt} from './util';
 
 class Quizlet {
     private browser?: Browser;
-    private page?: Page;
     private url?: string;
     private answers?: object;
     private game: string = '';
-    private loggedIn: boolean = false;
     async play() {
         await this.initSession();
         try {
-            if (!this.page) {throw noPage();}
             this.answers = await this.scrape();
-            await this.login();
             this.game = await this.gamePick();
             await this.go();
         } catch (e) {
-            if (this.page) {await this.page.screenshot({path: 'error.png'}); }
             console.log(e);
         } finally {
-            if (this.page) {await this.page.screenshot({path: 'done.png'}); }
             if (this.browser) await this.browser.close();
             process.exit();
         }
     }
     private async go() {
-        if (!this.page) {throw noPage();}
-        if (!this.answers) {throw new Error('No Answers!');}
+        if (!this.browser) {throw new Error('No Browser!'); }
+        if (!this.answers) {throw new Error('No Answers!'); }
         if (this.game === 'm') {
-            await new Match(this.page, this.answers, this.formatURL('match'), this.loggedIn).match();
+            await new Match(this.browser, this.answers, this.formatURL('match')).go();
         } else if (this.game === 'g') {
-            await new Gravity(this.page, this.answers, this.formatURL('gravity')).gravity();
+            await new Gravity(this.browser, this.answers, this.formatURL('gravity')).go();
+        } else if (this.game === 'l') {
+            await new Live(this.browser, this.answers, await prompt('What is the game code?\t')).go();
         }
         await this.again();
     }
@@ -47,8 +44,6 @@ class Quizlet {
             headless: false,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1440,900'],
         });
-        this.page = await this.browser.newPage();
-        await this.page.setViewport({width: 1920, height: 1080});
         console.log('Browser Initialized');
     }
     private async again() {
@@ -61,20 +56,12 @@ class Quizlet {
         }
     }
     private async gamePick() {
-        return await prompt('Would you like to play Match (m) or Gravity (g)\t'); //, or Live (l)
-    }
-    private async login() {
-        if (!this.page) {throw noPage();}
-        if (await prompt('Want to login? (y\\n):\t') === 'y') {
-            await this.page.goto('https://quizlet.com/login');
-            console.log('\nAlso, we may have to slow down the game so quizlet will record your score.\n');
-            await prompt('Press enter when finished logging in\t');
-            this.loggedIn = true;
-        }
+        return await prompt('Would you like to play Match (m) or Gravity (g)\t'); // , or Live (l)
     }
     private async scrape(): Promise<object> {
-        if (!this.page || !this.url) throw noPage();
-        const {page} = this;
+        if (!this.browser || !this.url) throw noPage();
+        const page = await this.browser.newPage();
+        await page.setViewport({width: 1920, height: 1080});
         await page.goto(this.url);
 
         await (await page.$$('.SetPage-header .UIButton'))[3].click();
@@ -93,6 +80,7 @@ class Quizlet {
             const split = i.split(' - ~~first~~');
             answers[split[0]] = split[1];
         }
+        await page.close();
         return answers;
     }
     private formatURL(dest: string): string {

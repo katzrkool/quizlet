@@ -1,4 +1,4 @@
-import {ElementHandle, Page} from "puppeteer";
+import {ElementHandle, Page} from 'puppeteer';
 
 async function getText(ele: ElementHandle | string, page: Page): Promise<string> {
     if (!page) throw noPage();
@@ -32,4 +32,4 @@ async function prompt(question): Promise<string> {
     });
 }
 
-export {delay, getText, noPage, prompt}
+export {delay, getText, noPage, prompt};

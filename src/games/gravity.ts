@@ -1,18 +1,18 @@
-import {Page} from 'puppeteer';
+import {Browser} from 'puppeteer';
 import {getText} from '../util';
 
 class Gravity {
-    private page: Page;
+    private browser: Browser;
     private answers: object;
     private url: string;
-    constructor(page: Page, answers: object, url: string) {
-        this.page = page;
+    constructor(browser: Browser, answers: object, url: string) {
+        this.browser = browser;
         this.answers = answers;
         this.url = url;
     }
 
-    public async gravity() {
-        const {page} = this;
+    public async go() {
+        const page = await this.browser.newPage();
         await page.setViewport({width: 1440, height: 900});
         await page.goto(this.url);
         await page.waitForSelector('.UIButton--hero');
@@ -46,6 +46,8 @@ class Gravity {
             }
             asteroidCount += 1;
         }
+
+        await page.close();
     }
 }
 
