@@ -56,7 +56,7 @@ class Quizlet {
         }
     }
     private async gamePick() {
-        return await prompt('Would you like to play Match (m) or Gravity (g)\t'); // , or Live (l)
+        return await prompt('Would you like to play Match (m) or Gravity (g), or Live (l)\t');
     }
     private async scrape(): Promise<object> {
         if (!this.browser || !this.url) throw noPage();
@@ -86,7 +86,7 @@ class Quizlet {
     private formatURL(dest: string): string {
         if (!this.url) throw new Error('No URL!');
         const urlParts = this.url.split('/');
-        if (isNaN(Number(urlParts[-2]))) {
+        if (isNaN(Number(urlParts[urlParts.length - 2]))) {
             urlParts.splice(urlParts.length - 2, 1);
         }
         return urlParts.join('/')  + dest;
