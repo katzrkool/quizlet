@@ -17,7 +17,8 @@
   },
   "homepage": "https://github.com/katzrkool/quizlet#readme",
   "dependencies": {
-    "puppeteer": "^1.6.2"
+    "puppeteer": "^1.6.2",
+    "minimist": ">=1.2.2"
   },
   "devDependencies": {
     "@types/node": "^10.5.7",
